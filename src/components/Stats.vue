@@ -15,7 +15,7 @@ export default {
   <div v-if="googleAuthUser && landings">
     <h3 class="green">Some stats about your Flying Experience</h3>
     <p>
-      You've completed a Total of: {{ flighstNo }} flights
+      You've completed a Total of: {{ flightsNo }} flights
     </p>
     <div v-if="landings">
       <p>

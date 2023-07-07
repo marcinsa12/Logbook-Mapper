@@ -9,18 +9,17 @@
       <v-expand-transition>
         <div v-show="expandFilters">
           <v-divider></v-divider>
-            <v-select :items="headers" item-title="title" v-model="headersToDisplay" return-object multiple
-            label="Select fields to display" @update:model-value="updateHeaders($event)"></v-select>
+            <v-select :items="headers || []" v-model="selectedHeaders" item-title="title" return-object multiple
+            label="Select fields to display"></v-select>
             
             <FiltersToDisplay 
-              :filters="filters"
-              @update:activeFilters="filterResults($event)">
+              :filters="filters">
             </FiltersToDisplay>      
         </div>
       </v-expand-transition>
     </v-card-title>
     
-    <v-data-table :headers="headersToDisplay" :items="flightsToDisplay(activeFilters)" v-model:items-per-page="itemsPerPage"
+    <v-data-table :headers="headersToDisplay" :items="flightsToDisplay" v-model:items-per-page="itemsPerPage"
       class="flights-table elevation-1" item-key="id" fixed-header @update:page="page = $event" @update:options="sortFlightArray($event)">
       <template v-slot:item="{ item }">
         <tr>
@@ -60,7 +59,6 @@ import { useLogbookStore } from '@/stores/logbook';
 import FiltersToDisplay from '@/components/FiltersToDisplay.vue';
 import { flightTypes } from '@/assets/constants'
 
-const logbook = useLogbookStore()
 export default {
   data() {
     return {
@@ -68,20 +66,26 @@ export default {
       itemsPerPage: 10,
       page: 1,
       search: "",
-      headersToDisplay: logbook.headersToDisplay || logbook.headers(true),
-      headers: logbook.headers(false),
       applicableFlightFilters: flightTypes,
       
-      expandFilters: false
+      expandFilters: false,
     };
   },
   computed: {
-    ...mapState(useLogbookStore, ["flights", "aircraftRegs", "aircraftTypes", "flightsToDisplay"]),
+    ...mapState(useLogbookStore, ["flights", "aircraftRegs", "aircraftTypes", "flightsToDisplay", "headers", "headersToDisplay"]),
+    selectedHeaders: {
+      get() {
+        return this.headersToDisplay || []
+      },
+      set(value) {
+        this.setHeaders(value)
+      }
+    },
     totalTimeCurrentPage(): string {
-      const flightsOnPage = this.itemsPerPage >= 0 ? this.flightsToDisplay(this.activeFilters).slice(
+      const flightsOnPage = this.itemsPerPage >= 0 ? this.flightsToDisplay?.slice(
         (this.page - 1) * this.itemsPerPage,
         this.page * this.itemsPerPage
-      ) : this.flightsToDisplay(this.activeFilters) ;
+      ) : this.flightsToDisplay ;
       const totalTimeOnPage = flightsOnPage?.reduce(
         (total, flight) => total + this.getMinutesFromDate(flight.totalTime),
         0
@@ -89,7 +93,7 @@ export default {
       return `${Math.floor(totalTimeOnPage / 60)}:${totalTimeOnPage % 60}`;
     },
     totalTime() {
-      const totalTime = this.flightsToDisplay(this.activeFilters)?.reduce(
+      const totalTime = this.flightsToDisplay?.reduce(
         (total, flight) => total + this.getMinutesFromDate(flight.totalTime),
         0
       ) || 0;
@@ -102,7 +106,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useLogbookStore, ["sortFlightArray"]),
+    ...mapActions(useLogbookStore, ["sortFlightArray", "setHeaders"]),
     getMinutesFromDate(date: Date) {
       try {
         const hours = date.getUTCHours();
@@ -115,19 +119,13 @@ export default {
     getStartPoint() {
       return this.page - 1 * this.itemsPerPage;
     },
-    filterResults($event) {
-      this.activeFilters = $event
-    },
     renderItem(item, key) {
       if (key == "date") {
         return item.toISOString().split("T")[0];
       }
       ;
       return item instanceof Date ? item.toISOString().split("T")[1].slice(0, 5) : item;
-    },
-    updateHeaders(e) {
-      logbook.headersToDisplay = this.headersToDisplay;
-    }, 
+    }
   },
   components: { FiltersToDisplay }
 }

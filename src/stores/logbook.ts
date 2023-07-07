@@ -3,10 +3,8 @@ import airportDatabase from '@/data/airportDatabase.json' assert {type: 'json'};
 import { isIsoDate, createHeaderFromKey } from '@/helpers/time'
 import firebase from '@/configs/firebase'
 import authUser from '@/configs/googleAuth'
-import { getDatabase, ref, child, get } from 'firebase/database'
-import { isType } from '@/helpers/flight';
-
-const defaultHeaders = ['date', 'arrival', 'departure', 'aircraftType', 'aircraftReg', 'totalTime'];
+import { getDatabase, ref, get } from 'firebase/database'
+import { isType, headers } from '@/helpers/flight';
 
 export const useLogbookStore = () => {
   const ls = defineStore({
@@ -14,11 +12,15 @@ export const useLogbookStore = () => {
     state: () => ({
       fetchInProgress: false,
       authInProgress: false,
-      flights: [],
-      headersToDisplay: null,
-      airports: airportDatabase as any,
       googleAuthUser: null,
       googleAuthToken: null,
+
+      flights: [],
+      airports: airportDatabase as any,
+      headers: headers,
+      headersToDisplay: headers.filter(h => h.default),
+
+      activeFlightFilters: [],
     }),
     actions: {
       fetchFlights() {
@@ -57,6 +59,12 @@ export const useLogbookStore = () => {
             }
           })
         })
+      },
+      setFlightFilters(filters: any) {
+        this.activeFlightFilters = filters;
+      },
+      setHeaders(headers: any) {
+        this.headersToDisplay = headers
       },
       sortFlightArray({ sortBy }: any) {
         let flights = this.flights      
@@ -101,52 +109,37 @@ export const useLogbookStore = () => {
       flightsNo: (state) => state.flights.length,
 
       flightsToDisplay: (state) => {
-        return (filters) => {
-          let fts = state.flights
-          if(filters) {
-            let filterKeys = Object.keys(filters)
-            if(filterKeys.length) {
-              fts = fts.filter( flight => {
-                let res = false
-                filterKeys.forEach( key => {
-                  if(key == 'flightType') {
-                    if(isType(flight, filters[key])) {
-                      res = true
-                    }
-                  } else {
-                    if(filters[key].includes(flight[key])) {
-                      res = true
-                    }
+        let filters = state.activeFlightFilters
+        let fts = state.flights
+        if(filters) {
+          let filterKeys = Object.keys(filters)
+          if(filterKeys.length) {
+            fts = fts.filter( flight => {
+              let res = false
+              filterKeys.forEach( key => {
+                if(key == 'flightType') {
+                  if(isType(flight, filters[key])) {
+                    res = true
                   }
-                })
-                return res
+                } else {
+                  if(filters[key].includes(flight[key])) {
+                    res = true
+                  }
+                }
               })
-            }
+              return res
+            })
           }
-          return fts
         }
+        return fts
       },
-  
       landings: (state) => state.flights.reduce((pv, nv) => {
         let { landingDay, landingNight } = nv
         pv.total += (landingDay || 0) + (landingNight || 0)
         pv.day += landingDay || 0
         pv.night += landingNight || 0
         return pv
-      }, { total: 0, day: 0, night: 0 }) as Landings,
-  
-      headers: (state) => {
-        return ((defaultOnly: boolean = false) => [
-          ...Object.keys(state.flights[0] || {}).filter(k => defaultOnly ? defaultHeaders.includes(k) : true).map(k => {
-            return {
-              title: createHeaderFromKey(k),
-              key: k,
-              align: 'start',
-              default: defaultHeaders.includes(k)
-            }
-          })
-        ])
-      }
+      }, { total: 0, day: 0, night: 0 }) as Landings
     }
   });
   const s = ls()
