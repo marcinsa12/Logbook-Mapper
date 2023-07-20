@@ -1,7 +1,10 @@
 <template>
   <v-card>
     <v-card-title primary-title>
-      Your Flight on the map
+      <div>
+        Your Flights on the map
+      </div>
+      <span v-if="mapDrawn">(You've flown a total of {{ totalFlownDistance.toFixed() || 0 }} NM! on these flights)</span>
     </v-card-title>
     <v-card-text>
       <div id="map"></div>
@@ -21,15 +24,24 @@ import Map from 'ol/Map'
 import { useLogbookStore } from '@/stores/logbook';
 import { mapState } from 'pinia';
 
+import { drawLineWithArrow } from '@/helpers/map';
+
 export default {
   name: 'Map',
   data() {
       return {
-          mapEntity: {}
+          mapEntity: {},
+          mapDrawn: false
       }
   },
   computed: {
-    ...mapState(useLogbookStore, ["flights", "getAirportByIcaoCode"])
+    // @ts-ignore
+    ...mapState(useLogbookStore, {
+        flights: (state: LogbookState) => state.flights,
+        flightsToDisplay: (state: LogbookGetters) => state.flightsToDisplay,
+        getAirportByIcaoCode: (state: LogbookGetters) => state.getAirportByIcaoCode,
+        totalFlownDistance: (state: LogbookGetters) => state.totalFlownDistance,
+    }),
   },
   mounted() {
     const map = new Map({
@@ -49,15 +61,18 @@ export default {
   },
   methods: {
     drawFlightMap() {
-      this.flights.forEach(({departure, arrival}) => {
+      let ftd = this.flights.length > this.flightsToDisplay.length ? this.flightsToDisplay : this.flights as []
+      ftd.forEach(async ({departure, arrival}) => {
         if(departure != arrival) {
-          let from = this.getAirportByIcaoCode(departure) || `${departure} airport`
-          let to = this.getAirportByIcaoCode(arrival) || `${arrival} airport`
+          let from = await this.getAirportByIcaoCode(departure) || `${departure} airport`
+          let to = await this.getAirportByIcaoCode(arrival) || `${arrival} airport`
           if(from && to) {
-            this.drawLineWithArrow(from, to, this.mapEntity)
+            console.log(this)
+            drawLineWithArrow(from, to, this.mapEntity)
           }
         }
       })
+      this.mapDrawn = true
     }
   }
 };
@@ -65,8 +80,9 @@ export default {
 
 <style>
 #map {
-  min-width: 95vw;
-  height: 80vh;
+  max-width: 95vw;
+  width: 100%;
+  height: 60vh;
   display: block;
 }
 </style>

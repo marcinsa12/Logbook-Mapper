@@ -21,7 +21,7 @@ function isType(flight: Flight, type: string[]) {
     }
     
     return isType
-    function inc(t) {
+    function inc(t: string) {
         return type.includes(t)
     }
 }

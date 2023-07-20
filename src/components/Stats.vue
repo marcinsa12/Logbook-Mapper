@@ -6,6 +6,7 @@ export default {
     return {}
   },
   computed: {
+    // @ts-ignore
     ...mapState(useLogbookStore, ["flightsNo", "landings", "googleAuthUser"])
   }
 }
@@ -19,7 +20,7 @@ export default {
     </p>
     <div v-if="landings">
       <p>
-        You've made a succesfull {{ landings.total }} landings. Of which {{ landings.night }} at night
+        You've made a succesfull {{ landings['total'] }} landings. Of which {{ landings['night'] }} at night
       </p>
     </div>
   </div>

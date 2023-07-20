@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
-import airportDatabase from '@/data/airportDatabase.json' assert {type: 'json'};
-import { isIsoDate, createHeaderFromKey } from '@/helpers/time'
+//import airportDatabase from '@/data/airportDatabase.json' assert {type: 'json'};
+import { isIsoDate } from '@/helpers/time'
 import firebase from '@/configs/firebase'
 import authUser from '@/configs/googleAuth'
 import { getDatabase, ref, get } from 'firebase/database'
 import { isType, headers } from '@/helpers/flight';
+import { fetchAirport, calculateDistance } from '@/helpers/airports';
 
-export const useLogbookStore = () => {
+export const useLogbookStore = (): LogbookStore => {
   const ls = defineStore({
     id: 'Logbook',
     state: () => ({
@@ -15,114 +16,93 @@ export const useLogbookStore = () => {
       googleAuthUser: null,
       googleAuthToken: null,
 
-      flights: [],
-      airports: airportDatabase as any,
+      flights: [] as Flight[],
+      airports: {} as {[key: string]: Airport},
       headers: headers,
       headersToDisplay: headers.filter(h => h.default),
 
-      activeFlightFilters: [],
+      activeFlightFilters: {} as {[key: string]: any},
     }),
     actions: {
       fetchFlights() {
-        if(!this.fetchInProgress) {
+        if (!this.fetchInProgress) {
           this.fetchInProgress = true
           const db = getDatabase(firebase)
           console.log('Fetching FLIGHTS from Firebase ...')
           const flightsRef = ref(db, '/flights')
           get(flightsRef).then((snapshot) => {
             let id = 0
-            const flights = snapshot.val().map((le: any) => {
-              le.id = id;
-              id++
-              Object.keys(le).forEach(key => {
-                const val = le[key as keyof Flight]
-                if (typeof val === 'string' && isIsoDate(val)) {
-                  le[key as keyof Flight] = new Date(val);
-                }
+            const flights = snapshot.val() as Flight[] | null
+            if (Array.isArray(flights)) {
+              flights.map((le: any) => {
+                le.id = id;
+                id++
+                Object.keys(le).forEach(key => {
+                  const val = le[key as keyof Flight]
+                  if (typeof val === 'string' && isIsoDate(val)) {
+                    le[key as keyof Flight] = new Date(val);
+                  }
+                })
+                return le
               })
-              return le
-            })
-            this.flights = flights
+              this.flights = flights
+            }
             this.fetchInProgress = false
           })
         }
       },
-      setFlights(flights: any) {
-        let id = 0
-        this.flights = flights.map((le: any) => {
-          le.id = id;
-          id++
-          Object.keys(le).forEach(key => {
-            const val = le[key as keyof Flight]
-            if (typeof val === 'string' && isIsoDate(val)) {
-              le[key as keyof Flight] = new Date(val);
-            }
-          })
-        })
-      },
-      setFlightFilters(filters: any) {
-        this.activeFlightFilters = filters;
-      },
-      setHeaders(headers: any) {
-        this.headersToDisplay = headers
-      },
-      sortFlightArray({ sortBy }: any) {
-        let flights = this.flights      
-        if(sortBy) {
-          sortBy = sortBy[0]
-          const {key, order} = sortBy || {};
-          const sortedFlights = flights.sort((a, b) => {
-            const valueA = a[key];
-            const valueB = b[key];
-    
-            if (order === 'asc') {
-              if (valueA < valueB) return -1;
-              if (valueA > valueB) return 1;
-            } else if (order === 'desc') {
-              if (valueA > valueB) return -1;
-              if (valueA < valueB) return 1;
-            }
-    
-            return 0;
-          });
-          this.flights = sortedFlights;
+      async fetchAirports(): Promise<void> {
+        if (!this.fetchInProgress) {
+          this.fetchInProgress = true
+
+          console.log('Fetching AIRPORTS from Firebase ...')
+          this.airports = await fetchAirport()
+
+          this.fetchInProgress = false
         }
       },
+      setFlightFilters(filters: Record<string, any>): void {
+        this.activeFlightFilters = filters;
+      }
     },
     getters: {
       getFlights: (state) => {
         return ((start: number, end: number) => state.flights.slice(start, end))
       },
       getAirportByIcaoCode: (state) => {
-        return ((code: string) => state.airports.find((airport: any) => airport.icaoCode === code))
+        return ((code: string) => state.airports[code] || (async () => {
+          let airport = await fetchAirport(code)
+          state.airports[code] = airport;
+          return airport
+        })())
       },
-      aircraftTypes: state => state.flights.reduce((pv: any, nv: any) => {
+      aircraftTypes: (state): AircraftType[] => state.flights.reduce((pv: any, nv: any) => {
         !pv.includes(nv.aircraftType) && pv.push(nv.aircraftType)
         return pv;
       }, []),
-      aircraftRegs: state => state.flights.reduce((pv, nv) => {
+      aircraftRegs: (state): AircraftRegs[] => state.flights.reduce((pv: any, nv: any) => {
         !pv.includes(nv.aircraftReg) && pv.push(nv.aircraftReg)
         return pv;
       }, []),
-  
-  
-      flightsNo: (state) => state.flights.length,
 
-      flightsToDisplay: (state) => {
+
+      flightsNo: (state) => state.flights.length as number,
+
+      flightsToDisplay(state): Flight[] {
         let filters = state.activeFlightFilters
-        let fts = state.flights
-        if(filters) {
+        let fts = state.flights || []
+        if (filters) {
           let filterKeys = Object.keys(filters)
-          if(filterKeys.length) {
-            fts = fts.filter( flight => {
+          if (filterKeys.length) {
+            fts = fts.filter(flight => {
               let res = false
-              filterKeys.forEach( key => {
-                if(key == 'flightType') {
-                  if(isType(flight, filters[key])) {
+              filterKeys.forEach((key: string) => {
+                if (key == 'flightType') {
+                  if (isType(flight, filters[key])) {
                     res = true
                   }
                 } else {
-                  if(filters[key].includes(flight[key])) {
+                  if (filters[key].includes(flight[key])) {
                     res = true
                   }
                 }
@@ -139,18 +119,30 @@ export const useLogbookStore = () => {
         pv.day += landingDay || 0
         pv.night += landingNight || 0
         return pv
-      }, { total: 0, day: 0, night: 0 }) as Landings
+      }, { total: 0, day: 0, night: 0 }) as Landings,
+      totalFlownDistance(state): number {
+        return this.flightsToDisplay?.reduce((pv: any, nv: any) => {
+          const { departure, arrival } = nv;
+          let distance = calculateDistance(
+            Number(state.airports[departure]?.lat),
+            Number(state.airports[departure]?.lon),
+            Number(state.airports[arrival]?.lat),
+            Number(state.airports[arrival]?.lon)
+          ) as number;
+          return pv + distance
+        }, 0)
+      }
     }
   });
   const s = ls()
-  if(s.flights.length == 0) {
-    if(s.googleAuthUser && s.googleAuthToken) {
+  if (s.flights.length == 0) {
+    if (s.googleAuthUser && s.googleAuthToken) {
       s.fetchFlights()
     } else {
-      if(!s.authInProgress) {
+      if (!s.authInProgress) {
         s.authInProgress = true
-        
-        authUser().then( (results: any) => {
+
+        authUser().then((results: any) => {
           const { token, user } = results
           s.googleAuthToken = token
           s.googleAuthUser = user
