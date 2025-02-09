@@ -40,8 +40,37 @@ export default {
         };
     },
     computed: {
-        // @ts-ignore
-        //...mapState(useLogbookStore, ['flights'])
+        flight(): Flight {
+            if (this.flightId === 'new') {
+                return {
+                    id: logbookStore.flights.length,
+                    date: '',
+                    departure: '',
+                    departureTime: '',
+                    arrival: '',
+                    arrivalTime: '',
+                    aircraftType: '',
+                    aircraftReg: '',
+                    singleEngineTime: '',
+                    multiEngineTime: '',
+                    multiPilotTime: false,
+                    totalTime: '',
+                    captain: '',
+                    takeOffsDay: 0,
+                    landingDay: 0,
+                    takeOffsNight: 0,
+                    landingNight: 0,
+                    nightTime: '',
+                    ifrTime: '',
+                    pic: '',
+                    sic: '',
+                    dual: '',
+                    instructor: '',
+                    remarks: ''
+                }
+            }
+            return this.flightMonitor
+        },
         flightMonitor() {
             return logbookStore.getFlight(Number(this.flightId)) || Object.assign(newFlightData, { id: logbookStore.flights.length })
         },

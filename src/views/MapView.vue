@@ -48,11 +48,10 @@ export default {
     }
   },
   computed: {
-    // @ts-ignore
     ...mapState(useLogbookStore, {
-      flights: (state: LogbookState) => state.flights,
-      flightsToDisplay: (state: LogbookGetters) => state.flightsToDisplay,
-      totalFlownDistance: (state: LogbookGetters) => state.totalFlownDistance,
+      flights: 'flights',
+      flightsToDisplay: 'flightsToDisplay',
+      totalFlownDistance: 'totalFlownDistance'
     }),
 
     availableYears() {
@@ -93,13 +92,6 @@ export default {
 
       console.log(`Found ${filtered.length} flights for year ${this.selectedYear}`);
       return filtered;
-    },
-
-    flownDistance() {
-      // Calculate distance only for filtered flights
-      return this.filteredFlights.reduce((total, flight) => {
-        return total + (flight.distance || 0);
-      }, 0);
     },
 
     yearDisplay() {

@@ -65,7 +65,8 @@ declare global {
   interface Filter {
     name: string,
     key: string, 
-    values: string[]
+    values: string[],
+    single?: boolean
   }
 
   // Define state type
@@ -83,14 +84,15 @@ declare global {
 
   // Define actions and getters type
   interface LogbookActions {
-    pushFlight: (flight: Flight) => void;
-    fetchFlights: () => void;
+    pushFlight: (flight: Flight) => Promise<void>;
+    fetchFlights: () => Promise<void>;
     fetchAirports: () => Promise<void>;
     setFlightFilters: (filters: Record<string, any>) => void;
+    clearFilters: () => void;
   }
 
   interface LogbookGetters {
-    getFlight: (id: number) => Flight[];
+    getFlight: (id: number) => Flight | undefined;
     getAirportByIcaoCode: (code: string) => Airport | Promise<Airport>;
     aircraftTypes: AircraftType[];
     aircraftRegs: AircraftRegs[];

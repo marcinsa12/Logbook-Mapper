@@ -31,7 +31,14 @@
             </v-col>
             <v-col cols="12" sm="4">
                 <!-- Aircraft Registration -->
-                <v-combobox clearable v-model="flight.aircraftReg" label="Aircraft Reg" required @update:model-value="updateType($event)" :items="aircraftRegs"></v-combobox>
+                <v-combobox 
+                    clearable 
+                    v-model="flight.aircraftReg" 
+                    label="Aircraft Reg" 
+                    required 
+                    @update:model-value="handleAircraftRegUpdate"
+                    :items="aircraftRegs"
+                ></v-combobox>
             </v-col>
             <v-col cols="12" sm="5">
                 <!-- Aircraft Type -->
@@ -156,10 +163,12 @@
 </template>
 
 <script lang="ts">
+import type { PropType } from 'vue'
 import { getNightFlightTime } from '@/helpers/time';
 import { mapActions, mapState } from 'pinia';
 import { useLogbookStore } from '@/stores/logbook';
 import FlightMap from '@/components/FlightMap.vue'
+
 export default {
     name: "FlightForm",
     data() {
@@ -177,8 +186,12 @@ export default {
         }
     },
     computed: {
-        // @ts-ignore
-        ...mapState(useLogbookStore, ['flights', 'aircraftRegs', 'aircraftTypes', 'getAirportByIcaoCode']),
+        ...mapState(useLogbookStore, {
+            flights: 'flights',
+            aircraftRegs: 'aircraftRegs',
+            aircraftTypes: 'aircraftTypes',
+            getAirportByIcaoCode: 'getAirportByIcaoCode'
+        }),
         newFlightId() {
             return this.flights.length
         },
@@ -196,7 +209,7 @@ export default {
         }
     },
     methods: {
-        ...mapActions(useLogbookStore, ['pushFlight', 'updateFlight']), 
+        ...mapActions(useLogbookStore, ['pushFlight']),
         async submitForm() {
             this.flight.takeOffsDay = Number(this.flight.takeOffsDay)
             this.flight.landingDay = Number(this.flight.landingDay)
@@ -261,10 +274,15 @@ export default {
             this.updateTotalTime()
             this.updateNightTime()
         },
-        updateType(reg: string) {
-            const aircraftType = this.flights.find((f: Flight) => f.aircraftReg === reg)?.aircraftType
-            if(aircraftType) {
-                this.flight.aircraftType = aircraftType
+        handleAircraftRegUpdate(val: unknown) {
+            if (typeof val === 'string') {
+                this.updateType(val);
+            }
+        },
+        updateType(val: string) {
+            const aircraftType = this.flights.find((f: Flight) => f.aircraftReg === val)?.aircraftType;
+            if (aircraftType) {
+                this.flight.aircraftType = aircraftType;
             }
         },
         assignTemporaryDepartureTime() {
