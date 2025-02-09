@@ -114,7 +114,7 @@
 
 <script lang="ts">
 import { mapState, mapWritableState } from 'pinia';
-import { useLogbookStore } from '@/stores/logbook';
+import { useLogbookStore, initializeLogbookStore } from '@/stores/logbook';
 import FiltersToDisplay from '@/components/FiltersToDisplay.vue';
 import FlightForm from '@/components/FlightForm.vue';
 import { flightTypes } from '@/assets/constants'
@@ -145,7 +145,6 @@ export default {
       aircraftRegs: (state: LogbookGetters) => state.aircraftRegs,
       aircraftTypes: (state: LogbookGetters) => state.aircraftTypes,
     }),
-    // @ts-ignore
     ...mapWritableState(useLogbookStore, {
       flights: "flights"
     }),
@@ -255,7 +254,10 @@ export default {
       return item
     }
   },
-  components: { FiltersToDisplay, FlightForm }
+  components: { FiltersToDisplay, FlightForm },
+  setup() {
+    initializeLogbookStore()
+  }
 }
 </script>
 

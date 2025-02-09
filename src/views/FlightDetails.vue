@@ -31,69 +31,41 @@ import { useLogbookStore } from '@/stores/logbook';
 import FlightForm from '@/components/FlightForm.vue';
 import { newFlightData } from '@/helpers/flight'
 
-const logbookStore = useLogbookStore()
-
 export default {
     data() {
         return {
-            flight: newFlightData
+            flight: { ...newFlightData }  // Create a new copy of newFlightData
         };
     },
     computed: {
-        flight(): Flight {
+        ...mapState(useLogbookStore, ['flights']),
+        flightMonitor() {
             if (this.flightId === 'new') {
                 return {
-                    id: logbookStore.flights.length,
-                    date: '',
-                    departure: '',
-                    departureTime: '',
-                    arrival: '',
-                    arrivalTime: '',
-                    aircraftType: '',
-                    aircraftReg: '',
-                    singleEngineTime: '',
-                    multiEngineTime: '',
-                    multiPilotTime: false,
-                    totalTime: '',
-                    captain: '',
-                    takeOffsDay: 0,
-                    landingDay: 0,
-                    takeOffsNight: 0,
-                    landingNight: 0,
-                    nightTime: '',
-                    ifrTime: '',
-                    pic: '',
-                    sic: '',
-                    dual: '',
-                    instructor: '',
-                    remarks: ''
+                    ...newFlightData,
+                    id: this.flights.length
                 }
             }
-            return this.flightMonitor
+            return this.store.getFlight(Number(this.flightId)) || { ...newFlightData, id: this.flights.length }
         },
-        flightMonitor() {
-            return logbookStore.getFlight(Number(this.flightId)) || Object.assign(newFlightData, { id: logbookStore.flights.length })
+        store() {
+            return useLogbookStore()
         },
-
         isLastFlight() {
-            return logbookStore.flights.length-1 === Number(this.flightId)
+            return this.flights.length - 1 === Number(this.flightId)
         },
-        
         flightId() {
             return this.$route.params.id === 'new'
                 ? 'new'
                 : Number(this.$route.params.id)
-        } 
-    },
-    watch: {
-        flightMonitor(newVal) {
-            this.flight = Object.assign({}, newVal)
         }
     },
-    mounted() {
-        this.flight = Object.assign({}, this.flightMonitor)
-        if(this.flightId === 'new') {
-            this.flight.id = logbookStore.flights.length
+    watch: {
+        flightMonitor: {
+            immediate: true,
+            handler(newVal) {
+                this.flight = { ...newVal }  // Create a new copy of the flight data
+            }
         }
     },
     methods: {

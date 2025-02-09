@@ -56,6 +56,25 @@ export const useLogbookStore = defineStore({
     },
     clearFilters() {
       this.activeFlightFilters = null;
+    },
+    async initialize() {
+      if (this.flights.length === 0 && !this.fetchInProgress) {
+        if (this.googleAuthUser && this.googleAuthToken) {
+          await this.fetchFlights()
+        } else if (!this.authInProgress) {
+          this.authInProgress = true
+          try {
+            const { token, user } = await authUser()
+            this.googleAuthToken = token
+            this.googleAuthUser = user
+            await this.fetchFlights()
+          } catch (error) {
+            console.error('Failed to initialize store:', error)
+          } finally {
+            this.authInProgress = false
+          }
+        }
+      }
     }
   },
   getters: {
@@ -129,4 +148,13 @@ export const useLogbookStore = defineStore({
       }, 0)
     }
   }
-}) 
+})
+
+// Create a separate initialization function
+export function initializeLogbookStore() {
+  const store = useLogbookStore()
+  store.initialize()
+}
+
+// Export the store for use with mapState/mapActions
+export { useLogbookStore as useLogbookStoreWithInit } 

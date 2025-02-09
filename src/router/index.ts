@@ -32,13 +32,13 @@ const router = createRouter({
 })
 
 // Add navigation guard to clear filters
-router.beforeEach((to, from, next) => {
-  // Only clear filters when actually changing views (not just params)
+router.beforeEach(async (to, from, next) => {
+  const store = useLogbookStore()
+  
   if (from.name && to.name && from.name !== to.name) {
-    const store = useLogbookStore();
-    store.clearFilters();
+    store.clearFilters()
   }
-  next();
+  next()
 })
 
 export default router

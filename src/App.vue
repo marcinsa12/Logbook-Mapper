@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import Header from './components/Header.vue'
+import { initializeLogbookStore } from '@/stores/logbook'
+
+// Initialize the store when the app starts
+initializeLogbookStore()
 </script>
 
 <template>
