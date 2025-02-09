@@ -136,18 +136,17 @@ export default {
     };
   },
   computed: {
-    // @ts-ignore
     ...mapState(useLogbookStore, {
-      flightsToDisplay: (state: LogbookGetters) => state.flightsToDisplay,
+      headers: 'headers',
+      headersToDisplay: 'headersToDisplay',
+      flightsToDisplay: 'flightsToDisplay',
       getAirportByIcaoCode: (state: LogbookGetters) => state.getAirportByIcaoCode,
       totalFlownDistance: (state: LogbookGetters) => state.totalFlownDistance,
       aircraftRegs: (state: LogbookGetters) => state.aircraftRegs,
       aircraftTypes: (state: LogbookGetters) => state.aircraftTypes,
-      headers: (state: LogbookState) => state.headers,
     }),
     // @ts-ignore
     ...mapWritableState(useLogbookStore, {
-      headersToDisplay: "headersToDisplay",
       flights: "flights"
     }),
     flightsOnPage (): any[] {
