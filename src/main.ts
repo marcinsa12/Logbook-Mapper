@@ -23,7 +23,10 @@ app.mixin({
 app.use(createPinia())
 app.use(router)
 app.use(createVuetify({
-    components: { VDataTable }
+    components: { VDataTable },
+    theme: {
+        defaultTheme: 'dark'
+    }
 }))
 
 app.mount('#app')

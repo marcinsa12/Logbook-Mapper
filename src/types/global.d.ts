@@ -18,20 +18,20 @@ declare global {
   }
 
   interface Flight {
-    id: string,
-    date: Date,
+    id: number,
+    date: string,
     departure: string,
-    departureTime: Date,
+    departureTime: string,
     arrival: string,
-    arrivalTime: Date,
+    arrivalTime: string,
     aircraftType: string,
     aircraftReg: string,
 
-    singleEngineTime: Date,
-    multiEngineTime: Date,
+    singleEngineTime: string,
+    multiEngineTime: string,
     multiPilotTime: Boolean,
 
-    totalTime: Date,
+    totalTime: string,
 
     captain: string,
 
@@ -40,12 +40,12 @@ declare global {
     takeOffsNight: number,
     landingNight: number,
 
-    nightTime: Date,
-    ifrTime: Date,
-    pic: Date,
-    sic: Date,
-    dual: Date,
-    instructor: Date,
+    nightTime: string,
+    ifrTime: string,
+    pic: string,
+    sic: string,
+    dual: string,
+    instructor: string,
 
     remarks: string
   }
@@ -83,13 +83,14 @@ declare global {
 
   // Define actions and getters type
   interface LogbookActions {
+    pushFlight: (flight: Flight) => void;
     fetchFlights: () => void;
     fetchAirports: () => Promise<void>;
     setFlightFilters: (filters: Record<string, any>) => void;
   }
 
   interface LogbookGetters {
-    getFlights: (start: number, end: number) => Flight[];
+    getFlight: (id: number) => Flight[];
     getAirportByIcaoCode: (code: string) => Airport | Promise<Airport>;
     aircraftTypes: AircraftType[];
     aircraftRegs: AircraftRegs[];

@@ -28,36 +28,6 @@ function isType(flight: Flight, type: string[]) {
 
 const headers = [
     {
-        "title": "Aircraft Reg",
-        "key": "aircraftReg",
-        "align": "start",
-        "default": true
-    },
-    {
-        "title": "Aircraft Type",
-        "key": "aircraftType",
-        "align": "start",
-        "default": true
-    },
-    {
-        "title": "Arrival",
-        "key": "arrival",
-        "align": "start",
-        "default": true
-    },
-    {
-        "title": "Arrival Time",
-        "key": "arrivalTime",
-        "align": "start",
-        "default": false
-    },
-    {
-        "title": "Captain",
-        "key": "captain",
-        "align": "start",
-        "default": false
-    },
-    {
         "title": "Date",
         "key": "date",
         "align": "start",
@@ -72,6 +42,36 @@ const headers = [
     {
         "title": "Departure Time",
         "key": "departureTime",
+        "align": "start",
+        "default": false
+    },
+    {
+        "title": "Arrival",
+        "key": "arrival",
+        "align": "start",
+        "default": true
+    },
+    {
+        "title": "Arrival Time",
+        "key": "arrivalTime",
+        "align": "start",
+        "default": false
+    },
+    {
+        "title": "Aircraft Type",
+        "key": "aircraftType",
+        "align": "start",
+        "default": true
+    },
+    {
+        "title": "Aircraft Reg",
+        "key": "aircraftReg",
+        "align": "start",
+        "default": true
+    },
+    {
+        "title": "Captain",
+        "key": "captain",
         "align": "start",
         "default": false
     },
@@ -190,8 +190,35 @@ const headers = [
         "default": false
     }
 ]
+
+const newFlightData = {
+    id: "",
+    date: null,
+    departure: "",
+    departureTime: null,
+    arrival: "",
+    arrivalTime: null,
+    aircraftType: "",
+    aircraftReg: "",
+    singleEngineTime: null,
+    multiEngineTime: null,
+    multiPilotTime: false,
+    totalTime: null,
+    captain: "self",
+    takeOffsDay: 0,
+    landingDay: 0,
+    takeOffsNight: 0,
+    landingNight: 0,
+    nightTime: null,
+    ifrTime: null,
+    pic: null,
+    sic: null,
+    dual: null,
+    instructor: null,
+    remarks: ""
+}
  
-export { isType, headers }
+export { isType, headers, newFlightData }
 
 
 

@@ -1,4 +1,3 @@
-import Nominatim from 'nominatim-geocoder';
 import Feature from 'ol/Feature.js';
 import VectorLayer from 'ol/source/Vector.js';
 import { LineString, Point, Polygon } from 'ol/geom.js';
@@ -9,60 +8,43 @@ import { getCenter } from 'ol/extent';
 import { fromLonLat } from 'ol/proj';
 import arrowIcon from '@/assets/iconArrowRight.svg'
 
-async function drawLineWithArrow(fromAddress: any, toAddress: any, map: any) {
-    const nominatim = new Nominatim({});
-    
-    const fromResult = typeof fromAddress === 'string' 
-      ? await nominatim.search({ q: fromAddress })
-      : [fromAddress] ;
-    const toResult = typeof toAddress === 'string' 
-      ? await nominatim.search({ q: toAddress })
-      : [toAddress];
-    if(fromResult[0]?.lon == '0.000') {
-      let fromData = await nominatim.search({ q: `${fromAddress.icaoCode} airport` })
-      console.log({
-        "icaoCode": fromAddress.icaoCode,
-        "iataCode": "N/A",
-        "airportName": fromData[0].display_name.split(',')[0],
-        "city": fromData[0].display_name.split(',')[2],
-        "country": fromData[0].display_name.split(',')[7],
-        "lat": fromData[0].lat,
-        "lon": fromData[0].lon
-      })
-    }
-    
-    if(toResult[0]?.lon == '0.000') {
-      let fromData = await nominatim.search({ q: `${toAddress.icaoCode} airport` })
-      console.log({
-        "icaoCode": toAddress.icaoCode,
-        "iataCode": "N/A",
-        "airportName": fromData[0].display_name.split(',')[0],
-        "city": fromData[0].display_name.split(',')[2],
-        "country": fromData[0].display_name.split(',')[7],
-        "lat": fromData[0].lat,
-        "lon": fromData[0].lon
-      })
+async function drawLineWithArrow(from: any, to: any, map: any) {
+    if (!map) {
+        console.warn('Map not available for drawing');
+        return;
     }
 
-    if (fromResult.length > 0 && toResult.length > 0) {
-        const fromCoords = fromLonLat([fromResult[0].lon, fromResult[0].lat]);
-        const toCoords = fromLonLat([toResult[0].lon, toResult[0].lat]);
-        const { vectorSource, vectorLayer } = drawLine(fromCoords, toCoords)
-        const { arrowSource, arrowLayer } = drawArrow(fromCoords, toCoords)
-        addCircleFeature(vectorSource, fromCoords)
-        map.addLayer(vectorLayer);
-        map.addLayer(arrowLayer);
+    return new Promise((resolve, reject) => {
+        try {
+            const fromResult = [from];
+            const toResult = [to];
 
-        const extent = vectorSource.getExtent();
-        const maxZoom = 16;
+            if (fromResult.length > 0 && toResult.length > 0) {
+                const fromCoords = fromLonLat([fromResult[0].lon, fromResult[0].lat]);
+                const toCoords = fromLonLat([toResult[0].lon, toResult[0].lat]);
+                const { vectorSource, vectorLayer } = drawLine(fromCoords, toCoords)
+                const { arrowSource, arrowLayer } = drawArrow(fromCoords, toCoords)
+                addCircleFeature(vectorSource, fromCoords)
+                map.addLayer(vectorLayer);
+                map.addLayer(arrowLayer);
 
-        const mapSize = map.getSize();
-        const zoom = map.getView().getZoomForResolution(map.getView().getResolutionForExtent(extent, mapSize));
-        const center = getCenter(extent);
-        const limitedZoom = Math.min(zoom, maxZoom);
+                const extent = vectorSource.getExtent();
+                const maxZoom = 16;
 
-        map.getView().fit(extent, { mapSize, maxZoom: limitedZoom, padding: [50, 50, 50, 50] });
-    }
+                const mapSize = map.getSize();
+                const zoom = map.getView().getZoomForResolution(map.getView().getResolutionForExtent(extent, mapSize));
+                const center = getCenter(extent);
+                const limitedZoom = Math.min(zoom, maxZoom);
+
+                map.getView().fit(extent, { mapSize, maxZoom: limitedZoom, padding: [50, 50, 50, 50] });
+                resolve(true);
+            } else {
+                reject(new Error('Invalid input'));
+            }
+        } catch (error) {
+            reject(error);
+        }
+    });
 }
 
 function drawLine(fromCoords: any, toCoords: any) {

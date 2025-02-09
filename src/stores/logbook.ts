@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { isIsoDate } from '@/helpers/time'
 import firebase from '@/configs/firebase'
 import authUser from '@/configs/googleAuth'
-import { getDatabase, ref, get } from 'firebase/database'
+import { getDatabase, ref, get, set } from 'firebase/database'
 import { isType, headers } from '@/helpers/flight';
 import { fetchAirport, calculateDistance } from '@/helpers/airports';
 
@@ -17,38 +17,31 @@ export const useLogbookStore = (): LogbookStore => {
       googleAuthToken: null,
 
       flights: [] as Flight[],
-      airports: {} as {[key: string]: Airport},
+      airports: {} as { [key: string]: Airport },
       headers: headers,
       headersToDisplay: headers.filter(h => h.default),
 
-      activeFlightFilters: {} as {[key: string]: any},
+      activeFlightFilters: {} as { [key: string]: any },
     }),
     actions: {
-      fetchFlights() {
+      async pushFlight(flight: Flight) {
+        const db = getDatabase(firebase)
+        const flightsRef = ref(db, `/flights2/${flight.id}`)
+        await set(flightsRef, flight)
+        await this.fetchFlights()
+      },
+      async fetchFlights() {
         if (!this.fetchInProgress) {
           this.fetchInProgress = true
           const db = getDatabase(firebase)
           console.log('Fetching FLIGHTS from Firebase ...')
-          const flightsRef = ref(db, '/flights')
-          get(flightsRef).then((snapshot) => {
-            let id = 0
-            const flights = snapshot.val() as Flight[] | null
-            if (Array.isArray(flights)) {
-              flights.map((le: any) => {
-                le.id = id;
-                id++
-                Object.keys(le).forEach(key => {
-                  const val = le[key as keyof Flight]
-                  if (typeof val === 'string' && isIsoDate(val)) {
-                    le[key as keyof Flight] = new Date(val);
-                  }
-                })
-                return le
-              })
-              this.flights = flights
-            }
-            this.fetchInProgress = false
-          })
+          const flightsRef = ref(db, '/flights2')
+          const snapshot = await get(flightsRef)
+          const flights = snapshot.val() as Flight[] | null
+          if (Array.isArray(flights)) {
+            this.flights = flights
+          }
+          this.fetchInProgress = false
         }
       },
       async fetchAirports(): Promise<void> {
@@ -63,11 +56,16 @@ export const useLogbookStore = (): LogbookStore => {
       },
       setFlightFilters(filters: Record<string, any>): void {
         this.activeFlightFilters = filters;
+      },
+      clearFilters() {
+        this.activeFlightFilters = null;
       }
     },
     getters: {
-      getFlights: (state) => {
-        return ((start: number, end: number) => state.flights.slice(start, end))
+      getFlight: (state) => {
+        return ((id: number) => {
+          return state.flights.find(f => f.id === id) 
+        })
       },
       getAirportByIcaoCode: (state) => {
         return ((code: string) => state.airports[code] || (async () => {
@@ -95,15 +93,33 @@ export const useLogbookStore = (): LogbookStore => {
           let filterKeys = Object.keys(filters)
           if (filterKeys.length) {
             fts = fts.filter(flight => {
-              let res = false
+              let res = true
               filterKeys.forEach((key: string) => {
                 if (key == 'flightType') {
-                  if (isType(flight, filters[key])) {
-                    res = true
+                  if (!isType(flight, filters[key])) {
+                    res = false
+                  }
+                } else if (key === 'dateFrom') {
+                  // Check if the flight's date is after or equal to the 'dateFrom' filter value
+                  if (new Date(flight.date) < new Date(filters[key])) {
+                    res = false;
+                  }
+                } else if (key === 'dateTo') {
+                  // Check if the flight's date is before or equal to the 'dateTo' filter value
+                  if (new Date(flight.date) > new Date(filters[key])) {
+                    res = false;
+                  }
+                } else if (key === 'picOnly') {
+                  if (filters[key] && !flight.pic) {
+                    res = false;
+                  }
+                } else if( key === 'nightOnly') {
+                  if (filters[key] && !flight.nightTime) {
+                    res = false;
                   }
                 } else {
-                  if (filters[key].includes(flight[key])) {
-                    res = true
+                  if (!filters[key].includes(flight[key])) {
+                    res = false
                   }
                 }
               })
